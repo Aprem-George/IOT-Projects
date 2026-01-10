@@ -1,0 +1,29 @@
+[Unit] 
+
+Description=Secure OTA Update Agent 
+
+After=network.target 
+
+  
+
+[Service] 
+
+User=aprem 
+
+WorkingDirectory=/home/aprem/secure-ota/ota_agent 
+
+ExecStart=/home/aprem/secure-ota/venv/bin/python3 /home/aprem/secure-ota/ota_agent/ota_agent.py 
+
+Restart=always 
+
+RestartSec=30 
+
+StandardOutput=append:/home/aprem/secure-ota/ota_agent/ota_agent.out.log 
+
+StandardError=append:/home/aprem/secure-ota/ota_agent/ota_agent.err.log 
+
+  
+
+[Install] 
+
+WantedBy=multi-user.target 
