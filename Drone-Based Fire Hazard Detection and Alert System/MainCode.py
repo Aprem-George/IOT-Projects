@@ -31,7 +31,7 @@ logging.basicConfig(
 )
 
 # === Pushbullet Initialization ===
-PB_API_KEY = "o.fL4FpGH2g4Km0vLXI2alramRUxS7G6LV"
+PB_API_KEY = # Enter your pushbullet API Key in quotes
 pb = Pushbullet(PB_API_KEY)
 
 # === Initialize Model ===
