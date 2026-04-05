@@ -1,0 +1,296 @@
+# Raspberry Pi CCTV System (Motion + Google Drive) 
+ 
+## 📌 Project Goal 
+ 
+The objective of this project was to build a **reliable, low-cost CCTV system** using a Raspberry Pi that: 
+ 
+- Streams live video to a phone 
+- Records only when motion is detected 
+- Automatically uploads clips to Google Drive 
+- Does not fill up local storage 
+- Handles real-world issues like power loss 
+ 
+This system was implemented on **Raspberry Pi OS Bookworm** using Motion, with a focus on **event-driven design and reliability**. 
+ 
+--- 
+ 
+# 🚀 Implementation Story 
+ 
+--- 
+ 
+## 1️⃣ Preparing the system 
+ 
+First, the Raspberry Pi was updated. 
+ 
+```bash 
+sudo apt update 
+sudo apt upgrade -y 
+
+ 
+
+2️⃣ Installing required packages 
+
+The core components of the system are: 
+
+Motion → video capture + motion detection  
+
+FFmpeg → video encoding (used by Motion)  
+
+rclone → cloud upload to Google Drive  
+
+v4l-utils → camera debugging tools  
+
+All were installed using: 
+
+sudo apt install -y motion ffmpeg v4l-utils rclone 
+
+ 
+
+3️⃣ Verifying camera detection 
+
+Before configuring Motion, the camera was verified. 
+
+ls /dev/video* 
+v4l2-ctl --list-devices 
+
+Expected output: 
+
+/dev/video0 
+
+ 
+
+4️⃣ Configuring Motion 
+
+The main configuration file: 
+
+sudo nano /etc/motion/motion.conf 
+
+Key configuration: 
+
+daemon off 
+videodevice /dev/video0 
+ 
+stream_port 8081 
+stream_localhost off 
+ 
+webcontrol_port 8080 
+webcontrol_localhost off 
+ 
+target_dir /var/lib/motion 
+ 
+framerate 10 
+ 
+threshold 2000 
+noise_level 32 
+minimum_motion_frames 3 
+ 
+event_gap 2 
+pre_capture 3 
+post_capture 10 
+ 
+picture_output on 
+movie_output on 
+movie_codec mp4 
+movie_max_time 3 
+ 
+movie_filename %t-%v-%Y%m%d%H%M%S 
+ 
+on_movie_end /usr/local/bin/motion_upload.sh %f 
+
+ 
+
+5️⃣ Starting Motion 
+
+sudo systemctl enable motion 
+sudo systemctl restart motion 
+sudo systemctl status motion 
+
+ 
+
+6️⃣ Accessing live stream 
+
+Find Pi IP: 
+
+hostname -I 
+
+Open in browser: 
+
+http://<PI_IP>:8081 
+
+ 
+
+7️⃣ Setting up Google Drive (rclone) 
+
+Initialize rclone: 
+
+rclone config 
+
+Create remote: 
+
+name: gdrive1 
+storage: drive 
+
+Verify: 
+
+rclone lsd gdrive1: 
+
+Create storage folder: 
+
+rclone mkdir gdrive1:CCTV_Motion_Clips 
+
+ 
+
+8️⃣ Making rclone accessible to Motion 
+
+Motion runs as a different user (motion), so its environment must be configured separately. 
+
+sudo mkdir -p /var/lib/motion/.config/rclone 
+sudo cp /home/aprem/.config/rclone/rclone.conf /var/lib/motion/.config/rclone/rclone.conf 
+sudo chown -R motion:motion /var/lib/motion/.config 
+sudo chmod 700 /var/lib/motion/.config 
+sudo chmod 700 /var/lib/motion/.config/rclone 
+sudo chmod 600 /var/lib/motion/.config/rclone/rclone.conf 
+
+Verify access: 
+
+sudo -u motion rclone lsd gdrive1: 
+
+ 
+
+9️⃣ Creating upload script 
+
+sudo nano /usr/local/bin/motion_upload.sh 
+
+Script: 
+
+#!/bin/bash 
+set -euo pipefail 
+ 
+FILE="${1:-}" 
+DEST="gdrive1:CCTV_Motion_Clips" 
+LOG="/var/log/motion/rclone_motion.log" 
+ 
+[ -n "$FILE" ] || exit 0 
+[ -f "$FILE" ] || exit 0 
+ 
+prev_size=0 
+for i in {1..10}; do 
+ size=$(stat -c%s "$FILE" 2>/dev/null || echo 0) 
+ if [ "$size" -gt 0 ] && [ "$size" -eq "$prev_size" ]; then 
+   break 
+ fi 
+ prev_size="$size" 
+ sleep 0.3 
+done 
+ 
+/usr/bin/rclone copy "$FILE" "$DEST" \ 
+ --log-file="$LOG" \ 
+ --log-level INFO 
+ 
+rm -f "$FILE" 
+
+Make executable: 
+
+sudo chmod 755 /usr/local/bin/motion_upload.sh 
+sudo chown root:root /usr/local/bin/motion_upload.sh 
+
+ 
+
+🔟 Creating log directory 
+
+sudo mkdir -p /var/log/motion 
+sudo touch /var/log/motion/rclone_motion.log 
+sudo chown -R motion:motion /var/log/motion 
+sudo chmod 755 /var/log/motion 
+
+ 
+
+1️⃣1️⃣ Restart Motion 
+
+sudo systemctl restart motion 
+
+ 
+
+1️⃣2️⃣ Testing upload manually 
+
+sudo -u motion bash -lc 'echo test > /var/lib/motion/test.txt' 
+sudo -u motion /usr/local/bin/motion_upload.sh /var/lib/motion/test.txt 
+
+Verify: 
+
+sudo -u motion rclone lsl gdrive1:CCTV_Motion_Clips 
+
+ 
+
+⚡ Power Loss Consideration 
+
+To reduce data loss: 
+
+movie_max_time 3 
+
+This ensures: 
+
+frequent file closure  
+
+frequent uploads  
+
+max loss ≈ 3 seconds  
+
+ 
+
+📊 Final System Capabilities 
+
+Live streaming via browser  
+
+Motion-triggered recording  
+
+Automatic Google Drive upload  
+
+Minimal local storage usage  
+
+Event-driven architecture  
+
+Power-loss tolerant (within limits)  
+
+ 
+
+🚧 Current Limitation 
+
+No night vision (yet)  
+
+ 
+
+📌 Useful Debug Commands 
+
+sudo systemctl status motion 
+sudo journalctl -u motion --no-pager -n 80 
+sudo tail -n 80 /var/log/motion/motion.log 
+sudo tail -n 80 /var/log/motion/rclone_motion.log 
+
+ 
+
+📁 Important Paths 
+
+Config → /etc/motion/motion.conf  
+
+Videos → /var/lib/motion  
+
+Script → /usr/local/bin/motion_upload.sh  
+
+Logs → /var/log/motion  
+
+ 
+
+🧠 Key Learnings 
+
+Event-driven design > polling  
+
+File stability matters before upload  
+
+Service users require separate configs  
+
+Real systems must handle failures 
+
+ 
+
+ 
