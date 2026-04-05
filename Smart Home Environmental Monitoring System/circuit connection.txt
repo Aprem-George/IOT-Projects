@@ -1,0 +1,129 @@
+🟩 1️⃣ SENSOR NODE — Arduino Nano 33 BLE Sense Rev2
+🌞 LDR (Light Sensor) → A0
+3.3V
+  |
+ [ LDR ]
+  |
+  +--------→ A0 (LIGHT_ADC)
+  |
+ [ 10kΩ ]
+  |
+ GND
+
+✔ Purpose: Convert light → voltage using voltage divider
+✔ Output goes to A0
+
+🌫 MQ-2 Gas Sensor + RC Filter + Op-Amp → A1
+🔸 Step 1: MQ-2 Power
+MQ-2 VCC → 5V (from Arduino #2)
+MQ-2 GND → GND (common ground)
+MQ-2 AOUT → RC Filter input
+
+
+🔸 Step 2: RC Low-Pass Filter
+MQ-2 AOUT
+     |
+   [10kΩ]  (R_filt)
+     |
+     +--------→ to Op-Amp (+)
+     |
+    === 0.1µF (104)
+     |
+    GND
+
+✔ Removes noise from MQ-2 signal
+
+🔸 Step 3: LM358 Op-Amp (Non-Inverting Amplifier)
+              3.3V
+               |
+             pin 8 (VCC)
+        +------------------+
+        |     LM358        |
+        |                  |
+ A1 <---| pin1 (OUT)       |
+        |                  |
+        | pin3 (+) <------- from RC node
+        |                  |
+        | pin2 (-) ----+---+
+        |              |    
+        +--------------|----+
+                       |
+                    [10kΩ]  (R_f)
+                       |
+                       +---- pin1 (OUT)
+                       |
+                    [10kΩ]  (R_in)
+                       |
+                      GND
+
+pin4 → GND
+
+✔ Gain = 1 + (Rf / Rin) = 2
+✔ Output → A1 (GAS_ADC)
+
+🔸 Decoupling Capacitor (VERY IMPORTANT)
+pin 8 (VCC) ----||---- pin 4 (GND)
+             0.1µF
+
+✔ Stabilizes amplifier power supply
+
+🌡 Temperature & Humidity (HS3003)
+Internal sensor (on Nano 33 BLE Sense Rev2)
+No external wiring required
+🔌 UART Transmission (Sensor → Output Node)
+Nano 33 BLE Sense Rev2        Arduino #2 (MKR1010)
+---------------------------------------------------
+D1 (TX1) --------------------→ Pin 13 (RX1)
+GND ------------------------→ GND
+
+✔ Sends: Light, Gas, Temp, Humidity
+
+🟦 2️⃣ OUTPUT NODE — Arduino MKR1010
+📺 LCD (16×2 I²C with PCF8574)
+LCD            MKR1010
+-------------------------
+VCC   --------→ 3.3V
+GND   --------→ GND
+SDA   --------→ Pin 11
+SCL   --------→ Pin 12
+
+✔ Displays sensor values
+
+📥 UART Reception
+
+MKR1010 Pin 13 (RX1) ← Nano TX1 (D1)
+
+✔ Receives CSV data from sensor node
+
+⚡ IMPORTANT SYSTEM CONNECTIONS
+🔗 Common Ground (MANDATORY)
+Nano GND --------→ MKR GND --------→ MQ-2 GND
+
+✔ Without this → system WILL NOT work
+
+🔋 MQ-2 Power
+MKR1010 5V → MQ-2 VCC
+
+✔ MQ-2 requires 5V heater
+✔ Nano uses 3.3V → cannot power MQ-2
+
+🧠 COMPLETE SYSTEM FLOW
+[LDR] --------→ A0 ┐
+                   │
+[MQ-2 + Filter + Amp] → A1 ├──→ Nano 33 BLE Sense
+                   │        (Processing + Formatting)
+[Temp/Humidity] → Internal │
+                           │
+                           ↓ UART (Serial1)
+                   MKR1010 Receiver
+                           ↓
+                    16×2 LCD Display
+✅ SHORT SUMMARY (FOR REPORT)
+LDR uses voltage divider for ADC input
+MQ-2 uses:
+RC filter → noise removal
+Op-amp → signal amplification
+Decoupling capacitor → stability
+Nano processes all sensor data
+UART sends data to MKR1010
+MKR displays data on I²C LCD
