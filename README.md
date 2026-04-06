@@ -144,7 +144,7 @@ Beat-Synced Single Track (Beat + Play + Blink)
 
 
 
-Save this file as: beat\_leds.py
+**Save this file as: beat\_leds.py**
 
 
 
@@ -312,7 +312,7 @@ We need a script that plays audio and blinks LEDs.
 
 
 
-Save this file as: beat\_leds\_playlist.py
+**Save this file as: beat\_leds\_playlist.py**
 
 
 
