@@ -1,0 +1,510 @@
+# Can Machine Learning Be Trained to Predict Asthma Based on Symptoms?
+
+This project investigates whether machine learning can be used to predict asthma based on symptoms, lifestyle indicators, environmental exposure, allergy history, and selected clinical attributes. The work was carried out as a group research project at **Ulster University, Belfast**, using a Kaggle asthma dataset and a combination of **Python**, **R Studio**, and standard machine learning workflows.
+
+The project combines **data preprocessing**, **exploratory data analysis**, **visualization**, **supervised learning**, and **unsupervised learning** to understand how well asthma can be predicted and what hidden relationships exist inside the dataset.
+
+---
+
+## Project Aim
+
+The main aim of this project was to determine whether asthma can be predicted using machine learning based on symptoms and related risk factors.
+
+The project focused on:
+
+- understanding the dataset and its variables
+- cleaning and preparing the data
+- visualizing relationships between symptoms/risk factors and diagnosis
+- training classification models
+- evaluating model performance
+- applying clustering to uncover hidden patterns between features
+
+---
+
+## Dataset
+
+The dataset was obtained from **Kaggle** and contains data for **2,392 asthma patients**, with patient IDs ranging from **5034 to 7425**.
+
+The dataset includes information such as:
+
+- demographics
+- lifestyle factors
+- environmental exposures
+- allergy history
+- medical background
+- clinical measurements
+- symptom information
+- diagnosis label
+
+The dataset was suitable for both statistical analysis and predictive modelling.
+
+---
+
+## Tools and Technologies Used
+
+### Languages
+- Python
+- R Studio
+
+### Python Libraries
+- pandas
+- numpy
+- matplotlib
+- seaborn
+- scikit-learn
+
+### Machine Learning Techniques Used
+- Decision Tree
+- Random Forest
+- K-Means Clustering
+
+### Evaluation / Statistical Methods Used
+- confusion matrix
+- classification report
+- correlation analysis
+- boxplots
+- heatmaps
+- mean and standard deviation analysis
+
+---
+
+## Project Workflow
+
+This project followed the **CRISP-DM** life cycle:
+
+1. **Business Understanding**  
+   Define the problem: can asthma be predicted from symptoms and associated features?
+
+2. **Data Understanding**  
+   Explore the Kaggle dataset, its feature types, structure, and diagnosis labels.
+
+3. **Data Preparation**  
+   Clean the dataset, remove unnecessary columns, encode categorical values, standardize selected numeric features, and prepare data for modelling.
+
+4. **Modelling**  
+   Train supervised models such as Decision Tree and Random Forest.  
+   Also apply unsupervised learning using K-Means clustering.
+
+5. **Evaluation**  
+   Compare model performance using confusion matrices, accuracy, and classification reports.
+
+6. **Deployment Concept**  
+   Discuss how the best-performing model could be integrated into a clinical decision support system.
+
+---
+
+## What Was Executed in This Project
+
+### 1. Data Loading and Initial Inspection
+
+The dataset was loaded into a pandas DataFrame and explored using:
+
+- `df.head()`
+- `df.info()`
+- `df.describe()`
+- `df.isnull().sum()`
+
+This helped identify:
+
+- missing values
+- column data types
+- numerical and categorical features
+- dataset shape and contents
+
+---
+
+### 2. Data Cleaning
+
+The data cleaning process included:
+
+- removing duplicate values if present
+- dropping unnecessary columns such as `PatientID`
+- checking null values
+- inspecting data distributions
+- selecting useful columns for analysis and modelling
+
+Examples of columns handled during cleaning and selection included:
+
+- `PatientID`
+- `Age`
+- `Gender`
+- `Ethnicity`
+- `BMI`
+- `Smoking`
+- `PhysicalActivity`
+- `DietQuality`
+- `SleepQuality`
+- `PollutionExposure`
+- `PollenExposure`
+- `DustExposure`
+- `PetAllergy`
+- `FamilyHistoryAsthma`
+- `HistoryOfAllergies`
+- `LungFunctionFEV1`
+- `LungFunctionFVC`
+- `ExerciseInduced`
+- symptom columns
+- `Diagnosis`
+
+---
+
+### 3. Feature Encoding
+
+Different encoding strategies were used depending on feature type.
+
+#### Label Encoding
+Used for selected categorical columns when converting categories into numeric form.
+
+Example columns considered:
+- `Gender`
+- `Smoking`
+- `DietQuality`
+
+#### One-Hot Encoding
+Applied where fake ordering needed to be avoided, especially for algorithms such as **K-Means**, because K-Means relies on distance and should not assume one category is "greater" than another.
+
+This was especially important for columns like:
+- `Gender`
+
+---
+
+### 4. Binary Transformation and Threshold-Based Feature Flagging
+
+Some columns were converted into binary indicator values based on thresholds to support heatmap analysis and risk interpretation.
+
+Examples discussed and used:
+
+- replacing values with `1` if they lie inside or outside a specific interval
+- converting values into binary flags using `np.where()`
+- using threshold-based conditions for analysis
+
+Example logic:
+- low physical activity flagged as 1 if below a benchmark
+- high pollution exposure flagged as 1 if above a benchmark
+- similar logic applied to selected features for heatmap generation
+
+Threshold examples used in the report include:
+
+- Physical Activity `< 3.5`
+- Diet Quality `< 3.6`
+- Sleep Quality `< 5`
+- BMI `< 16`
+- Pollution Exposure `> 7.93`
+- Pollen Exposure `> 8`
+- Dust Exposure `> 7.83`
+- BMI `> 30`
+
+These threshold-based transformations helped convert raw values into easier yes/no style risk indicators for visualization.
+
+---
+
+### 5. Exploratory Data Analysis
+
+Several forms of visualization were used to understand the data better.
+
+#### Boxplots
+Boxplots were created to compare numerical features against diagnosis categories.
+
+These helped analyze:
+- spread of values
+- median
+- outliers
+- differences between diagnosis groups
+
+#### Point Plots
+Point plots were explored to compare mean values of numerical features across diagnosis categories.
+
+#### Heatmaps
+Heatmaps were a major part of the project and were used in two ways:
+
+##### a. Heatmap of causes by diagnosis
+This showed average yes/no occurrences of risk-related causes by asthma diagnosis.
+
+##### b. Heatmap of symptoms by diagnosis
+This showed the weight of each symptom in relation to diagnosis outcome.
+
+Findings mentioned in the report include:
+- wheezing and nighttime symptoms were strongly associated with asthma
+- eczema appeared less important than some other symptoms
+- environmental triggers and hereditary factors also contributed to diagnosis patterns
+
+---
+
+### 6. Statistical and Descriptive Analysis
+
+The project also involved simple statistical exploration such as:
+
+- mean of selected columns
+- standard deviation of selected columns
+- checking relationships between grouped variables
+- observing category distributions visually
+
+This supported interpretation before training models.
+
+---
+
+## Supervised Learning
+
+The classification task in this project was to predict the `Diagnosis` column.
+
+### Models Used
+
+#### 1. Decision Tree
+A Decision Tree model was used as a baseline classifier because it is easy to interpret.
+
+#### 2. Random Forest
+A Random Forest model was used because it handles multidimensional data well and often performs better on structured tabular datasets.
+
+---
+
+## Data Splitting
+
+The dataset was split into training and testing sets using an 80/20 split.
+
+Typical logic used:
+
+- `X` = all input features
+- `y` = `Diagnosis`
+- `train_test_split(X, y, test_size=0.2, random_state=42)`
+
+This means:
+- 80% of data used for training
+- 20% of data used for testing
+
+---
+
+## Scaling
+
+Standardization was applied to selected numerical columns such as:
+
+- `Age`
+- `BMI`
+
+using `StandardScaler`.
+
+Scaling was important for:
+- balancing feature ranges
+- helping distance-based methods like K-Means
+- improving consistency in preprocessing
+
+---
+
+## Model Evaluation
+
+Model performance was assessed using:
+
+- confusion matrix
+- accuracy
+- sensitivity
+- specificity
+- classification report
+
+### Random Forest Results
+According to the report:
+
+- Accuracy: **0.95**
+
+Confusion matrix values reported:
+- TP = 456
+- FN = 0
+- FP = 23
+- TN = 0
+
+### Decision Tree Results
+According to the report:
+
+- Accuracy: **0.58**
+
+Confusion matrix values reported:
+- TP = 270
+- FN = 186
+- FP = 13
+- TN = 10
+
+### Interpretation
+Random Forest performed significantly better than Decision Tree in terms of overall predictive accuracy. However, the project also noted that high accuracy alone can be misleading, especially in imbalanced classification problems. This is why confusion matrices and deeper interpretation were important parts of the analysis.
+
+---
+
+## Unsupervised Learning
+
+### K-Means Clustering
+
+K-Means clustering was used to identify hidden relationships between features in the asthma dataset.
+
+The purpose of clustering in this project was to:
+
+- discover natural groupings in the data
+- observe whether symptom or exposure patterns form clusters
+- compare cluster characteristics
+- support the exploratory analysis beyond classification
+
+### K-Means Workflow
+
+The K-Means process followed these steps:
+
+1. select relevant features
+2. encode categorical variables appropriately
+3. scale the data using `StandardScaler`
+4. choose the number of clusters
+5. fit the K-Means model
+6. assign cluster labels
+7. compare cluster means and differences
+
+### Cluster Interpretation
+After clustering, cluster labels were added back to the DataFrame and used to analyze:
+
+- mean values of features inside each cluster
+- differences between clusters
+- hidden relationships between symptoms and contributing variables
+
+This helped identify whether certain combinations of risk factors appeared together.
+
+---
+
+## Key Findings
+
+From the report and code-related analysis, the major findings were:
+
+- **Random Forest** gave the strongest predictive performance
+- **Decision Tree** offered interpretability but lower performance
+- symptoms such as **wheezing** and **night symptoms** had a strong relationship with asthma diagnosis
+- environmental exposures such as **pollution**, **dust**, and **pollen** contributed to risk patterns
+- hereditary features such as **family history of asthma** and **history of allergies** also showed relevance
+- visualization helped reveal relationships that were not immediately obvious from raw tabular data
+- clustering helped uncover hidden structure among symptoms and feature groups
+
+---
+
+## Limitations
+
+The project also identified several limitations:
+
+- strong dependence on symptom-based and self-reported data
+- imbalance in prediction of negative cases
+- misleading nature of accuracy when classes are imbalanced
+- low specificity in one of the reported confusion matrices
+- decision tree overfitting risk
+- lack of objective physiological measurements in some cases
+- need for better metrics such as:
+  - F1 score
+  - precision-recall analysis
+  - AUC-ROC
+
+---
+
+## Legal, Ethical, and Social Considerations
+
+A dedicated section of the project addressed legal, ethical, and social implications.
+
+### Legal
+- need to comply with GDPR when handling health-related data
+- importance of anonymization and consent
+- need to define responsibility if a model gives harmful or incorrect predictions
+
+### Ethical
+- patient confidentiality must be protected
+- dataset representation should be fair to avoid bias
+- clinicians should be able to understand and trust the model
+- AI should support, not replace, human judgment
+
+### Social
+- healthcare AI affects real people and real diagnoses
+- systems must not worsen inequality in treatment
+- trustworthy communication is essential to create realistic expectations
+
+---
+
+## How to Run the Project
+
+### 1. Clone the repository
+```bash
+git clone https://github.com/your-username/your-repo-name.git
+cd your-repo-name
+2. Install required libraries
+pip install pandas numpy matplotlib seaborn scikit-learn
+3. Place the dataset
+
+Put the Kaggle asthma dataset file inside the project folder.
+
+Example:
+
+data/asthma_disease_data.csv
+4. Run the notebook or script
+
+If using Jupyter:
+
+jupyter notebook
+
+Then open the notebook and run the cells step by step.
+
+Suggested Project Structure
+asthma-prediction-ml/
+│
+├── data/
+│   └── asthma_dataset.csv
+│
+├── notebooks/
+│   └── asthma_analysis.ipynb
+│
+├── scripts/
+│   ├── data_preprocessing.py
+│   ├── visualizations.py
+│   ├── train_models.py
+│   └── clustering.py
+│
+├── results/
+│   ├── confusion_matrix_rf.png
+│   ├── confusion_matrix_dt.png
+│   ├── boxplots.png
+│   ├── heatmap_causes.png
+│   └── heatmap_symptoms.png
+│
+├── README.md
+└── requirements.txt
+Example Areas Covered in the Code
+
+The code contributions across the project included:
+
+loading and inspecting the dataset
+checking missing values
+replacing yes/no values
+selecting and dropping columns
+computing mean and standard deviation
+threshold-based conversion of values
+heatmap generation
+boxplot creation
+point plot exploration
+label encoding and one-hot encoding
+train/test splitting
+Random Forest training
+Decision Tree training
+confusion matrix generation
+clustering using K-Means
+interpreting differences between clusters
+
+## Project Outcome
+
+This project showed that machine learning can be trained to predict asthma based on symptoms and related features. The work also demonstrated that visualization and clustering are valuable for understanding the dataset beyond pure prediction.
+
+The project combined both predictive modelling and exploratory analysis, making it a strong example of practical healthcare-focused machine learning using structured tabular data.
+
+Authors
+Habeebllahi Ejio
+Amanda Logan McCook
+Naren Kumar Narayanan
+Aprem George
+
+Ulster University, Belfast
+
+Future Improvements
+
+Possible next steps for improving this project include:
+
+applying class balancing techniques
+testing additional models such as XGBoost
+improving feature selection
+adding cross-validation
+using better evaluation metrics beyond accuracy
+including more objective clinical measurements
+building a simple interface for clinician-facing prediction
