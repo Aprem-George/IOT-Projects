@@ -1,0 +1,239 @@
+# 📊 Mortality Rate Analysis using Azure Databricks
+
+## 👨‍💻 Author
+Aprem George  
+MSc IoT – Ulster University  
+Module: COM745 Big Data and Infrastructure  
+
+---
+
+# 📌 1. Project Overview
+
+This project analyses the relationship between:
+- Mortality rate (`val`)
+- Education level (`edu_name`)
+- Age group (`age_name`)
+- Geographic location (`location_name`)
+
+using **IHME datasets (2018 & 2019)** in a **Databricks Lakehouse architecture**.
+
+---
+
+# 🏗️ 2. Environment Setup (Azure Databricks)
+
+## Step 1 — Create Workspace
+- Azure Portal → Azure Databricks → Create Workspace
+- Pricing Tier: Trial / Standard
+- Region: UK South
+
+## Step 2 — Create Cluster
+- Go to **Compute → Create Cluster**
+- Node type: `Standard_D4pds_v6`
+- Mode: **Single Node** (to avoid quota error)
+- Auto terminate: 30 minutes
+
+---
+
+# 📂 3. Data Upload
+
+## Method Used: Databricks UI
+
+- Go to:
+
+Workspace → Add Data → Create or modify table
+
+- Upload files:
+- `ihme_deaths_education_2018.csv`
+- `ihme_deaths_education_2019.csv`
+
+---
+
+# 🔹 4. Data Ingestion (PySpark)
+
+```python
+path_2018 = "/Volumes/catalog/schema/volume/ihme_deaths_education_2018.csv"
+path_2019 = "/Volumes/catalog/schema/volume/ihme_deaths_education_2019.csv"
+
+df18 = (spark.read
+  .option("header", "true")
+  .option("inferSchema", "true")
+  .csv(path_2018))
+
+df19 = (spark.read
+  .option("header", "true")
+  .option("inferSchema", "true")
+  .csv(path_2019))
+
+print(df18.count(), df19.count())
+df18.printSchema()
+
+
+🔹 5. Combine Datasets
+
+df = df18.unionByName(df19)
+
+
+🔹 6. Silver Layer — Data Cleaning
+
+Remove unwanted rows
+from pyspark.sql.functions import col
+
+df_clean = df.filter(
+    (col("edu_name") != "All educational attainment populations") &
+    (col("val").isNotNull())
+)
+Drop unnecessary columns
+drop_cols = [
+    "measure_id","measure_name","location_id","fips",
+    "edu_id","sex_id","cause_id","cause_name",
+    "metric_id","metric_name","sex_name"
+]
+
+silver_clean = df_clean.drop(*drop_cols)
+Save Silver Table
+silver_clean.write \
+    .format("delta") \
+    .mode("overwrite") \
+    .saveAsTable("com745_edu_mortality.silver_mortality_clean")
+
+
+🔹 7. Gold Layer — Aggregations
+
+7.1 Mortality by Education
+from pyspark.sql.functions import avg
+
+silver = spark.table("com745_edu_mortality.silver_mortality_clean")
+
+gold_edu = (
+    silver.groupBy("edu_name")
+    .agg(avg("val").alias("avg_mortality_rate"))
+    .orderBy("avg_mortality_rate", ascending=False)
+)
+
+display(gold_edu)
+7.2 Age × Education
+gold_age_edu = (
+    silver.groupBy("age_name", "edu_name")
+    .agg(avg("val").alias("avg_mortality_rate"))
+)
+
+display(gold_age_edu)
+7.3 Geographic Aggregation
+gold_location = (
+    silver.groupBy("location_name", "edu_name")
+    .agg(avg("val").alias("avg_mortality_rate"))
+)
+
+display(gold_location)
+7.4 Top 50 Counties with Lowest Mortality
+from pyspark.sql.functions import col
+
+top50_least_mortality_overall = (
+    gold_location
+    .orderBy(col("avg_mortality_rate").asc())
+    .limit(50)
+)
+
+display(top50_least_mortality_overall)
+
+
+🔹 8. SQL Insights
+
+Open SQL Cell:
+
+Insight A — Education Gradient (2018 vs 2019)
+
+SELECT
+  year,
+  edu_name,
+  ROUND(AVG(val), 4) AS avg_mortality_rate,
+  ROUND(AVG(lower), 4) AS avg_lower,
+  ROUND(AVG(upper), 4) AS avg_upper
+FROM com745_edu_mortality.silver_mortality_clean
+WHERE year IN (2018, 2019)
+GROUP BY year, edu_name
+ORDER BY edu_name, year;
+Insight B — Change (2018 → 2019)
+WITH x AS (
+  SELECT
+    year,
+    edu_name,
+    AVG(val) AS avg_mortality_rate
+  FROM com745_edu_mortality.silver_mortality_clean
+  WHERE year IN (2018, 2019)
+  GROUP BY year, edu_name
+),
+p AS (
+  SELECT
+    edu_name,
+    MAX(CASE WHEN year = 2019 THEN avg_mortality_rate END) -
+    MAX(CASE WHEN year = 2018 THEN avg_mortality_rate END) AS change_18_19
+  FROM x
+  GROUP BY edu_name
+)
+SELECT
+  edu_name,
+  ROUND(change_18_19, 4) AS change_18_19
+FROM p
+ORDER BY ABS(change_18_19) DESC;
+
+
+📊 9. Visualisations (Databricks UI)
+
+Visual 1 — Education Gradient
+Type: Bar chart
+X: edu_name
+Y: avg_mortality_rate
+Visual 2 — Age × Education
+Type: Heatmap
+X: edu_name
+Y: age_name
+Color: avg_mortality_rate
+Visual 3 — Top 50 Counties
+Type: Table
+Sorted by: avg_mortality_rate ascending
+Visual 4 — Year Comparison
+Type: Bar chart
+X: edu_name
+Y: avg_mortality_rate
+Group by: year
+
+
+🔍 10. Key Insights
+
+Mortality decreases with higher education
+Age increases mortality significantly
+Education disparity persists across all ages
+Geographic clustering exists
+Small but measurable changes between 2018 and 2019
+
+
+🎥 11. Video Demonstration
+
+Recorded using:
+
+OBS Studio
+Screen + Microphone audio
+📚 12. References
+
+[1] IHME Dataset – https://ghdx.healthdata.org
+
+[2] Azure Databricks – https://learn.microsoft.com
+
+[3] Apache Spark SQL – https://spark.apache.org/sql
+
+
+🚀 13. How to Run
+
+Upload CSV files
+Run ingestion code
+Run Silver cleaning
+Run Gold aggregation
+Execute SQL queries
+Create visualisations
+
+📌 14. Notes
+
+val represents mortality rate
+Dataset contains only measure_name = deaths
+Analysis focuses on mortality rate variation
